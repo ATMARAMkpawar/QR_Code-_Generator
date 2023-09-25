@@ -1,0 +1,97 @@
+•	QR Code Generator with SQL database connectivity
+
+from kivy.metrics import dp
+from qrcode import QRCode, ERROR_CORRECT_L from kivymd.uix.label import MDLabel
+from kivymd.uix.textfield import MDTextField
+from kivymd.uix.button import MDRectangleFlatButton from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.image import Image from kivy.lang import Builder import qrcode
+from kivymd.app import MDApp from kivymd.uix.screen import Screen import sqlite3
+from kivy.core.window import Window Window.size = (360, 640)
+screen_helper = """ ScreenManager:
+QRCodeScreen:
+GeneratedQRCodeScreen:
+
+<QRCodeScreen>: name: 'qrcode'
+ 
+MDLabel:
+text: "QR Code Generator" halign: 'center' theme_text_color: 'Secondary' font_style: 'H2'
+pos_hint: {'center_x':0.5, 'center_y':0.9}
+
+MDTextField: id: qr_text
+hint_text: "Enter text for QR code" size_hint_x: None
+width: 250
+pos_hint: {'center_x':0.5, 'center_y':0.6}
+
+MDRaisedButton:
+text: "Generate QR Code" size_hint_x: None
+width: 150
+pos_hint: {'center_x':0.5, 'center_y':0.4} on_press: app.generate_qr_code(qr_text.text)
+
+MDRaisedButton:
+text: "Go to Generated QR Code Screen" size_hint_x: None
+width: 250
+pos_hint: {'center_x':0.5, 'center_y':0.2}
+on_press: root.manager.current = 'generated_qrcode'
+
+MDRaisedButton:
+text: "Generate QR Code" size_hint_x: None
+width: 150
+pos_hint: {'center_x':0.5, 'center_y':0.4}
+on_press: app.generate_qr_code(root, qr_text.text)
+
+
+<GeneratedQRCodeScreen>: name: 'generated_qrcode'
+
+MDLabel:
+text: "Generated QR Code"
+ 
+halign: 'center' theme_text_color: 'Secondary' font_style: 'H2'
+pos_hint: {'center_x':0.5, 'center_y':0.9}
+
+Image:
+id: qrcode_image source: ''
+size_hint: None, None size: 300, 300
+pos_hint: {'center_x':0.5, 'center_y':0.5}
+
+MDRaisedButton:
+text: "Generate Another QR Code" size_hint_x: None
+width: 250
+pos_hint: {'center_x':0.5, 'center_y':0.2} on_press: root.manager.current = 'qrcode'
+"""
+
+
+class QRCodeScreen(Screen): pass
+
+
+class GeneratedQRCodeScreen(Screen): pass
+
+class QRCodeApp(MDApp): def build(self):
+self.theme_cls.primary_palette = 'Blue' screen_manager = Builder.load_string(screen_helper) return screen_manager
+
+def on_start(self):
+self.conn = sqlite3.connect("qrcodes.db") self.cursor = self.conn.cursor() self.cursor.execute(
+"CREATE TABLE IF NOT EXISTS qrcodes (id INTEGER PRIMARY KEY AUTOINCREMENT,
+data TEXT, image BLOB)"
+ 
+)
+self.conn.commit()
+
+self.theme_cls.primary_palette = "LightBlue" self.theme_cls.primary_hue = "A700" self.theme_cls.theme_style = "Light" Window.size = (360, 640)
+
+screen = Screen()
+
+def generate_qr_code(self, instance, qr_text):
+qr = qrcode.QRCode(version=1, box_size=10, border=5) qr.add_data(qr_text)
+qr.make(fit=True)
+img = qr.make_image(fill_color='black', back_color='white') img_path = 'qr_code.png'
+img.save(img_path) self.root.get_screen('generated_qrcode').ids.qrcode_image.source = img_path
+
+# Insert QR code into database
+with open("temp_qrcode.png", "rb") as f: image_data = f.read()
+self.cursor.execute(
+"INSERT INTO qrcodes (data, image) VALUES (?, ?)", (qr_text, image_data)
+)
+self.conn.commit()
+
+
+if  name	== ' main ': QRCodeApp().run()
