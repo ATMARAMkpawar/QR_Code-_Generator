@@ -1,0 +1,5 @@
+•	SQLite Database Query
+
+SELECT * FROM qrcodes; SELECT id,
+data, image
+FROM qrcodes;
